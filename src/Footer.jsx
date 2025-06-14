@@ -1,6 +1,6 @@
 import React from "react";
-import { Facebook, Twitter, Instagram } from "lucide-react"; // Make sure you have lucide-react installed
-import { Link } from "react-router-dom"; // Use Link from react-router-dom
+import { Facebook, Twitter, Instagram } from "lucide-react"; 
+import { Link } from "react-router-dom"; 
 
 const Footer = () => {
   return (

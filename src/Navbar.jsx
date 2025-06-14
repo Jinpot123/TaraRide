@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom"; // Import Link from react-router-dom
+import { Link } from "react-router-dom";
 import { FaBars, FaTimes } from "react-icons/fa"; // Hamburger icon and close icon
 
 const Navbar = () => {

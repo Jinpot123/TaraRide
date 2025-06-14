@@ -5,12 +5,12 @@
   font-family: "Noto Sans", sans-serif;
 
   /* Color Palette */
-  --pastel-purple: #D8B4FE;  /* Pastel Purple */
-  --pastel-blue: #A7C7FF;    /* Pastel Blue */
-  --pastel-lavender: #E0C7FF; /* Light Lavender */
+  --pastel-purple: #D8B4FE; 
+  --pastel-blue: #A7C7FF;   
+  --pastel-lavender: #E0C7FF; 
   --white: #FFFFFF;
   --light-gray: #F5F5F5;
-  --dark-purple: #6A4C93;  /* Dark Purple for contrast */
+  --dark-purple: #6A4C93;  
 }
 
 html {

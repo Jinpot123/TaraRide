@@ -1,26 +1,78 @@
 import React, { useState } from 'react';
+import { db, storage } from './firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const DriverForm = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [mobileNumber, setMobileNumber] = useState('');
-  const [licenseNumber, setLicenseNumber] = useState('');
+  const [plateNumber, setPlateNumber] = useState('');
   const [vehicleModel, setVehicleModel] = useState('');
-  const [licenseImage, setLicenseImage] = useState(null);
+  const [plateImage, setPlateImage] = useState(null);
   const [vehicleImage, setVehicleImage] = useState(null);  
+  const [platePreview, setPlatePreview] = useState(null);
+  const [vehiclePreview, setVehiclePreview] = useState(null);
 
-  const handleImageChange = (e) => {
+
+  const handleImageChange = (e, type) => {
     const file = e.target.files[0];
     if (file) {
-      setLicenseImage(URL.createObjectURL(file)); 
+      if (type === 'plate') {
+        setPlateImage(file);
+        setPlatePreview(URL.createObjectURL(file));
+      } else if (type === 'vehicle'){
+        setVehicleImage(file);
+        setVehiclePreview(URL.createObjectURL(file));
+      }
     }
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    console.log({ name, email, licenseNumber, vehicleModel, licenseImage });
-  };
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+      console.log('Submitting form with:', {
+      name, email, mobileNumber, plateNumber, vehicleModel,
+       plateImage, vehicleImage
+     });
+
+    try {
+      const plateImageRef = ref(storage, `plateImages/${plateImage.name}`);
+      const vehicleImageRef = ref(storage, `vehicleImages/${vehicleImage.name}`);
+
+      console.log('plateImage:', plateImage);
+      console.log('vehicleImage:', vehicleImage);
+
+
+
+      await uploadBytes(plateImageRef, plateImage);
+      await uploadBytes(vehicleImageRef, vehicleImage);
+
+
+      const plateImageURL = await getDownloadURL(plateImageRef);
+      const vehicleImageURL = await getDownloadURL(vehicleImageRef);
+
+      await addDoc(collection(db, 'contact_information'), {
+        name,
+        email,
+        mobileNumber,
+        plateNumber,
+        vehicleModel,
+        plateImageURL,
+        vehicleImageURL,
+        createdAt: serverTimestamp()
+      });
+
+      alert('Driver submitted successfully!');
+
+
+    } catch (error) {
+      console.error('Error adding driver:', error);
+      alert('Error submitting form.');
+    }
+  };
+  
 
   return (
     <div className="max-w-lg mx-auto p-8 bg-white shadow-lg rounded-lg mt-10">
@@ -90,26 +142,26 @@ const DriverForm = () => {
             id="vehicleImage"
             type="file"
             accept="image/*"
-            onChange={handleImageChange}
+            onChange={(e) => handleImageChange(e, 'vehicle')}
             className="mt-2 block w-full text-gray-700 border border-gray-300 rounded-md file:border-0 file:bg-blue-500 file:text-white file:py-2 file:px-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           />
-          {vehicleImage && (
+          {vehiclePreview && (
             <div className="mt-4">
-              <img src={vehicleImage} alt="License Preview" className="w-32 h-32 object-cover rounded-md" />
+              <img src={vehiclePreview} alt="Vehicle Preview" className="w-32 h-32 object-cover rounded-md" />
             </div>
           )}
         </div>
 
         {}
         <div>
-          <label htmlFor="licenseNumber" className="block text-sm font-medium text-gray-600">Driver's License Number</label>
+          <label htmlFor="plateNumber" className="block text-sm font-medium text-gray-600">Driver's Plate Number</label>
           <input
-            id="licenseNumber"
+            id="plateNumber"
             type="text"
-            value={licenseNumber}
-            onChange={(e) => setLicenseNumber(e.target.value)}
-            placeholder="Enter your license number"
+            value={plateNumber}
+            onChange={(e) => setPlateNumber(e.target.value)}
+            placeholder="Enter your plate number"
             className="mt-2 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           />
@@ -117,18 +169,18 @@ const DriverForm = () => {
 
         {}
         <div>
-          <label htmlFor="licenseImage" className="block text-sm font-medium text-gray-600">Upload Driver's License Image</label>
+          <label htmlFor="plateImage" className="block text-sm font-medium text-gray-600">Upload Plate Number Image</label>
           <input
-            id="licenseImage"
+            id="plateImage"
             type="file"
             accept="image/*"
-            onChange={handleImageChange}
+            onChange={(e) => handleImageChange(e, 'plate')}
             className="mt-2 block w-full text-gray-700 border border-gray-300 rounded-md file:border-0 file:bg-blue-500 file:text-white file:py-2 file:px-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           />
-          {licenseImage && (
+          {platePreview && (
             <div className="mt-4">
-              <img src={licenseImage} alt="License Preview" className="w-32 h-32 object-cover rounded-md" />
+              <img src={platePreview} alt="License Preview" className="w-32 h-32 object-cover rounded-md" />
             </div>
           )}
         </div>

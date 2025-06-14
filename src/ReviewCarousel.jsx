@@ -3,15 +3,15 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const reviews = [
   {
-    name: "Juan Dela Cruz",
+    name: "Kelgeen Jan L. Penilla",
     text: "TaraRide made my daily commute so much easier and cheaper!",
   },
   {
-    name: "Maria Santos",
+    name: "Peter John Detera",
     text: "As a driver, I save on gas and toll fees thanks to carpooling.",
   },
   {
-    name: "Carlos Reyes",
+    name: "Liam Lorenzo",
     text: "Reliable and convenient! Highly recommended for students.",
   },
 ];
