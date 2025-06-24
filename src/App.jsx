@@ -13,6 +13,8 @@ import "aos/dist/aos.css";
 import AboutUs from "./AboutUs";
 import Contact from "./Contact";
 import ErrorBoundary from "./ErrorBoundary";
+import Success from "./Success";
+import './index.css';
 
 const App = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -64,6 +66,7 @@ const App = () => {
             <Route path="/home" element={<Hero />} />
             <Route path="/services" element={<Services />} />
             <Route path="/news" element={<News />} />
+            <Route path="/success" element={<Success />} />
           </Routes>
           <div data-aos="fade-up" data-aos-delay="400">
             <Footer />
