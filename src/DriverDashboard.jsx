@@ -70,9 +70,8 @@ const DriverDashboard = () => {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-2">Welcome, {driverName}</h1>
+      <h1 className="text-2xl font-bold mb-6">Welcome, {driverName}</h1>
 
-      {/* Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 my-6">
         <div className="bg-purple-100 p-4 rounded-lg text-center shadow">
           <p className="text-sm text-gray-600">Total Rides</p>
@@ -90,7 +89,6 @@ const DriverDashboard = () => {
         </div>
       </div>
 
-      {/* Status Filter */}
       <div className="mb-4">
         <label htmlFor="statusFilter" className="mr-2 font-medium">
           Filter by status:
@@ -108,7 +106,6 @@ const DriverDashboard = () => {
         </select>
       </div>
 
-      {/* Charts */}
       <div className="bg-white p-4 rounded-xl shadow-md mb-6">
         <h3 className="text-lg font-semibold mb-4">Earnings per Ride</h3>
         <ResponsiveContainer width="100%" height={300}>
@@ -153,7 +150,6 @@ const DriverDashboard = () => {
         </ResponsiveContainer>
       </div>
 
-      {/* Ride List */}
       <h3 className="text-lg font-medium mb-2">Your Rides</h3>
       <ul className="space-y-3">
         {rides.map((ride, i) => (
@@ -163,11 +159,11 @@ const DriverDashboard = () => {
             </p>
             {ride.ride_source_location_name && ride.ride_destination_name && (
               <p>
-                From{" "}
+                From {" "}
                 <span className="text-blue-600">
                   {ride.ride_source_location_name}
                 </span>{" "}
-                to{" "}
+                to {" "}
                 <span className="text-blue-600">
                   {ride.ride_destination_name}
                 </span>
