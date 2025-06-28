@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { HashRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Navbar from "./Navbar";
 import Hero from "./Hero";
 import Services from "./Services";
@@ -10,17 +10,22 @@ import LoadingScreen from "./LoadingScreen";
 import Footer from "./Footer";
 import AOS from "aos";
 import "aos/dist/aos.css";
-import AboutUs from "./AboutUs";
-import Contact from "./Contact";
 import ErrorBoundary from "./ErrorBoundary";
 import Success from "./Success";
-import './index.css';
+import Login from "./Login";
+import DriverDashboard from "./DriverDashboard";
+import PrivateRoute from "./PrivateRoute";
+import Account from "./Account"; // ✅ Make sure it's imported
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "./firebase";
+import "./index.css";
 
 const App = () => {
   const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 3000); 
+    const timer = setTimeout(() => setIsLoading(false), 3000);
     return () => clearTimeout(timer);
   }, []);
 
@@ -30,6 +35,13 @@ const App = () => {
       once: true,
       easing: "ease-in-out",
     });
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsubscribe();
   }, []);
 
   if (isLoading) return <LoadingScreen />;
@@ -43,31 +55,33 @@ const App = () => {
             <Route
               path="/"
               element={
-                <>
-                  <div data-aos="fade-up">
-                    <Hero />
-                  </div>
-                  <div data-aos="fade-up" data-aos-delay="100">
-                    <Services />
-                  </div>
-                  <div data-aos="fade-up" data-aos-delay="200">
-                    <News />
-                  </div>
-                  <div data-aos="fade-up" data-aos-delay="300">
-                    <ReviewCarousel />
-                  </div>
-                </>
+                user ? (
+                  <Navigate to="/driver-dashboard" replace />
+                ) : (
+                  <>
+                    <div data-aos="fade-up"><Hero /></div>
+                    <div data-aos="fade-up" data-aos-delay="100"><Services /></div>
+                    <div data-aos="fade-up" data-aos-delay="200"><News /></div>
+                    <div data-aos="fade-up" data-aos-delay="300"><ReviewCarousel /></div>
+                  </>
+                )
               }
             />
             <Route path="/become-a-driver" element={<DriverForm />} />
-            <Route path="/about-us" element={<AboutUs />} />
-            <Route path="/contact" element={<Contact />} />
-          
-            <Route path="/home" element={<Hero />} />
-            <Route path="/services" element={<Services />} />
-            <Route path="/news" element={<News />} />
             <Route path="/success" element={<Success />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/driver-dashboard" element={
+              <PrivateRoute allowedRoles={["driver"]}>
+                <DriverDashboard />
+              </PrivateRoute>
+            } />
+            <Route path="/account" element={
+              <PrivateRoute allowedRoles={["driver"]}>
+                <Account />
+              </PrivateRoute>
+            } />
           </Routes>
+
           <div data-aos="fade-up" data-aos-delay="400">
             <Footer />
           </div>
