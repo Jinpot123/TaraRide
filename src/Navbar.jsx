@@ -1,18 +1,23 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FaBars, FaTimes } from "react-icons/fa";
-import { onAuthStateChanged, signOut } from "firebase/auth";
+import { onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "./firebase";
 import { doc, getDoc } from "firebase/firestore";
+import LoadingScreen from "./LoadingScreen";
+import { useLogout } from "./hooks/useLogout"; // ✅ Correct import only
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isDriver, setIsDriver] = useState(false);
   const [isAuthLoaded, setIsAuthLoaded] = useState(false);
-  const navigate = useNavigate();
+  const [loggingOut, setLoggingOut] = useState(false);
 
+  const navigate = useNavigate();
   const toggleMenu = () => setIsOpen(!isOpen);
   const closeMenu = () => setIsOpen(false);
+
+  const handleLogout = useLogout(navigate, setLoggingOut); // ✅ Hook-based logout
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -40,10 +45,11 @@ const Navbar = () => {
     return () => unsubscribe();
   }, []);
 
-  const handleLogout = async () => {
-    await signOut(auth);
-    navigate("/login");
-  };
+  if (!isAuthLoaded) return null;
+
+  if (loggingOut) {
+    return <LoadingScreen message="Logging out..." />;
+  }
 
   const navLinks = isDriver ? (
     <>
@@ -76,8 +82,6 @@ const Navbar = () => {
       </Link>
     </>
   );
-
-  if (!isAuthLoaded) return null;
 
   return (
     <nav className="bg-purple-700 shadow-lg w-full">

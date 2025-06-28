@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { auth, db } from "./firebase";
+import { useNavigate } from "react-router-dom";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 import {
   BarChart,
@@ -14,6 +15,7 @@ import {
   Cell,
   Legend,
 } from "recharts";
+import LoadingScreen from "./LoadingScreen";
 
 const COLORS = ["#8b5cf6", "#6366f1", "#4f46e5", "#4338ca"];
 
@@ -22,6 +24,8 @@ const DriverDashboard = () => {
   const [rides, setRides] = useState([]);
   const [earnings, setEarnings] = useState(0);
   const [statusFilter, setStatusFilter] = useState("completed");
+  const [loggingOut, setLoggingOut] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const user = auth.currentUser;
@@ -55,6 +59,8 @@ const DriverDashboard = () => {
     return () => unsubscribe();
   }, [statusFilter]);
 
+  if (loggingOut) return <LoadingScreen message="Logging out..." />;
+
   const chartData = rides.map((ride) => ({
     title: ride.ride_title?.slice(0, 15) || "Untitled",
     earnings: ride.ride_earnings || 0,
@@ -70,7 +76,7 @@ const DriverDashboard = () => {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">Welcome, {driverName}</h1>
+      <h1 className="text-2xl font-bold text-gray-800 mb-6">Welcome, {driverName}</h1>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 my-6">
         <div className="bg-purple-100 p-4 rounded-lg text-center shadow">
@@ -111,13 +117,7 @@ const DriverDashboard = () => {
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis
-              dataKey="title"
-              angle={-30}
-              textAnchor="end"
-              interval={0}
-              height={80}
-            />
+            <XAxis dataKey="title" angle={-30} textAnchor="end" interval={0} height={80} />
             <YAxis />
             <Tooltip />
             <Bar dataKey="earnings" fill="#7c3aed" />
@@ -139,10 +139,7 @@ const DriverDashboard = () => {
               label
             >
               {rideTypeData.map((entry, index) => (
-                <Cell
-                  key={`cell-${index}`}
-                  fill={COLORS[index % COLORS.length]}
-                />
+                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
               ))}
             </Pie>
             <Legend />
@@ -154,19 +151,12 @@ const DriverDashboard = () => {
       <ul className="space-y-3">
         {rides.map((ride, i) => (
           <li key={i} className="border p-4 rounded-md shadow-sm">
-            <p className="font-semibold">
-              {ride.ride_title || "Untitled Ride"}
-            </p>
+            <p className="font-semibold">{ride.ride_title || "Untitled Ride"}</p>
             {ride.ride_source_location_name && ride.ride_destination_name && (
               <p>
-                From {" "}
-                <span className="text-blue-600">
-                  {ride.ride_source_location_name}
-                </span>{" "}
-                to {" "}
-                <span className="text-blue-600">
-                  {ride.ride_destination_name}
-                </span>
+                From{" "}
+                <span className="text-blue-600">{ride.ride_source_location_name}</span> to{" "}
+                <span className="text-blue-600">{ride.ride_destination_name}</span>
               </p>
             )}
             <p>Earnings: ₱{(ride.ride_earnings || 0).toFixed(2)}</p>
