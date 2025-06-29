@@ -1,7 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { auth, db } from "./firebase";
 import { useNavigate } from "react-router-dom";
-import { collection, query, where, onSnapshot } from "firebase/firestore";
+import {
+  collection,
+  query,
+  where,
+  onSnapshot,
+  getDocs,
+} from "firebase/firestore";
 import {
   BarChart,
   Bar,
@@ -10,14 +16,8 @@ import {
   Tooltip,
   ResponsiveContainer,
   CartesianGrid,
-  PieChart,
-  Pie,
-  Cell,
-  Legend,
 } from "recharts";
 import LoadingScreen from "./LoadingScreen";
-
-const COLORS = ["#8b5cf6", "#6366f1", "#4f46e5", "#4338ca"];
 
 const DriverDashboard = () => {
   const [driverName, setDriverName] = useState("");
@@ -25,6 +25,11 @@ const DriverDashboard = () => {
   const [earnings, setEarnings] = useState(0);
   const [statusFilter, setStatusFilter] = useState("completed");
   const [loggingOut, setLoggingOut] = useState(false);
+  const [averageRating, setAverageRating] = useState(null);
+  const [ratingCount, setRatingCount] = useState(0);
+  const [recentFeedbacks, setRecentFeedbacks] = useState([]);
+  const [ratingDistribution, setRatingDistribution] = useState({});
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -59,6 +64,88 @@ const DriverDashboard = () => {
     return () => unsubscribe();
   }, [statusFilter]);
 
+  useEffect(() => {
+    const fetchDriverRatings = async () => {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      try {
+        const rideInfoSnapshot = await getDocs(
+          query(
+            collection(db, "ride_information"),
+            where("driver_id", "==", user.uid),
+            where("status", "==", "completed")
+          )
+        );
+
+        const driverRideIds = rideInfoSnapshot.docs.map(
+          (doc) => doc.data().ride_id
+        );
+
+        if (driverRideIds.length === 0) {
+          setAverageRating(null);
+          setRatingCount(0);
+          setRecentFeedbacks([]);
+          return;
+        }
+
+        const rideHistorySnapshot = await getDocs(
+          collection(db, "ride_history_information")
+        );
+        const matchedHistories = rideHistorySnapshot.docs.filter((doc) =>
+          driverRideIds.includes(doc.data().ride_id)
+        );
+        const validRideIds = new Set(
+          matchedHistories.map((doc) => doc.data().ride_id)
+        );
+
+        const feedbackSnapshot = await getDocs(
+          collection(db, "feedback_information")
+        );
+        const validFeedbacks = feedbackSnapshot.docs
+          .map((doc) => doc.data())
+          .filter(
+            (fb) =>
+              validRideIds.has(fb.ride_id) &&
+              typeof fb.feedback_rating === "number"
+          );
+
+        const ratings = validFeedbacks.map((fb) => fb.feedback_rating);
+        if (ratings.length > 0) {
+          const avg = ratings.reduce((sum, r) => sum + r, 0) / ratings.length;
+          setAverageRating(avg.toFixed(2));
+          setRatingCount(ratings.length);
+        } else {
+          setAverageRating(null);
+          setRatingCount(0);
+        }
+
+        const distribution = {};
+        validFeedbacks.forEach((fb) => {
+          const r = Math.round(fb.feedback_rating);
+          distribution[r] = (distribution[r] || 0) + 1;
+        });
+        setRatingDistribution(distribution);
+
+        const sortedFeedbacks = validFeedbacks
+          .sort(
+            (a, b) =>
+              b.feedback_submitted_on?.seconds -
+              a.feedback_submitted_on?.seconds
+          )
+          .slice(0, 3);
+        setRecentFeedbacks(sortedFeedbacks);
+      } catch (error) {
+        console.error("Failed to fetch driver ratings and feedbacks:", error);
+        setAverageRating(null);
+        setRatingCount(0);
+        setRecentFeedbacks([]);
+      }
+    };
+
+    fetchDriverRatings();
+  }, []);
+
   if (loggingOut) return <LoadingScreen message="Logging out..." />;
 
   const chartData = rides.map((ride) => ({
@@ -66,19 +153,29 @@ const DriverDashboard = () => {
     earnings: ride.ride_earnings || 0,
   }));
 
-  const rideTypeData = Object.entries(
-    rides.reduce((acc, ride) => {
-      const type = ride.ride_type || "unknown";
-      acc[type] = (acc[type] || 0) + 1;
-      return acc;
-    }, {})
-  ).map(([type, count]) => ({ name: type, value: count }));
+  const renderStars = (avg) => {
+    const fullStars = Math.floor(avg);
+    const halfStar = avg % 1 >= 0.5;
+    const stars = [];
+
+    for (let i = 0; i < fullStars; i++) {
+      stars.push(<span key={i}>⭐</span>);
+    }
+
+    if (halfStar) {
+      stars.push(<span key="half">⭐</span>);
+    }
+
+    return stars;
+  };
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">Welcome, {driverName}</h1>
+      <h1 className="text-2xl font-bold text-gray-800 mb-6">
+        Welcome, {driverName}
+      </h1>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 my-6">
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 my-6">
         <div className="bg-purple-100 p-4 rounded-lg text-center shadow">
           <p className="text-sm text-gray-600">Total Rides</p>
           <p className="text-2xl font-bold">{rides.length}</p>
@@ -93,31 +190,61 @@ const DriverDashboard = () => {
             ₱{rides.length > 0 ? (earnings / rides.length).toFixed(2) : "0.00"}
           </p>
         </div>
+        <div className="bg-purple-100 p-4 rounded-lg text-center shadow">
+          <p className="text-sm text-gray-600">Avg. Rating</p>
+          <p className="text-2xl font-bold">
+            {averageRating !== null ? (
+              <>
+                {averageRating} / 5 <br />
+                <span className="text-yellow-500">
+                  {renderStars(Number(averageRating))}
+                </span>
+              </>
+            ) : (
+              "No ratings yet"
+            )}
+          </p>
+          {ratingCount > 0 && (
+            <p className="text-sm text-gray-600 mt-1">{ratingCount} ratings</p>
+          )}
+        </div>
       </div>
 
-      <div className="mb-4">
-        <label htmlFor="statusFilter" className="mr-2 font-medium">
-          Filter by status:
-        </label>
-        <select
-          id="statusFilter"
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="border border-gray-300 rounded px-2 py-1"
-        >
-          <option value="completed">Completed</option>
-          <option value="ongoing">Ongoing</option>
-          <option value="pending">Pending</option>
-          <option value="cancelled">Cancelled</option>
-        </select>
-      </div>
+      {recentFeedbacks.length > 0 && (
+        <div className="bg-white p-4 rounded-xl shadow-md mb-6">
+          <h3 className="text-lg font-semibold mb-4">💬 Latest Feedback</h3>
+          <ul className="space-y-4">
+            {recentFeedbacks.map((fb, i) => (
+              <li key={i} className="border p-3 rounded-md shadow-sm">
+                <div className="flex items-center justify-between">
+                  <p className="font-medium text-gray-700">
+                    {renderStars(fb.feedback_rating)} ({fb.feedback_rating})
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    {new Date(
+                      fb.feedback_submitted_on?.seconds * 1000
+                    ).toLocaleString()}
+                  </p>
+                </div>
+                <p className="text-gray-800 mt-1">"{fb.feedback_comment}"</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="bg-white p-4 rounded-xl shadow-md mb-6">
-        <h3 className="text-lg font-semibold mb-4">Earnings per Ride</h3>
+        <h3 className="text-lg font-semibold mb-4">💰 Earnings per Ride</h3>
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="title" angle={-30} textAnchor="end" interval={0} height={80} />
+            <XAxis
+              dataKey="title"
+              angle={-30}
+              textAnchor="end"
+              interval={0}
+              height={80}
+            />
             <YAxis />
             <Tooltip />
             <Bar dataKey="earnings" fill="#7c3aed" />
@@ -126,37 +253,36 @@ const DriverDashboard = () => {
       </div>
 
       <div className="bg-white p-4 rounded-xl shadow-md mb-6">
-        <h3 className="text-lg font-semibold mb-4">Rides by Type</h3>
-        <ResponsiveContainer width="100%" height={250}>
-          <PieChart>
-            <Pie
-              data={rideTypeData}
-              cx="50%"
-              cy="50%"
-              outerRadius={80}
-              fill="#8884d8"
-              dataKey="value"
-              label
-            >
-              {rideTypeData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-              ))}
-            </Pie>
-            <Legend />
-          </PieChart>
-        </ResponsiveContainer>
+        <h3 className="text-lg font-semibold mb-4">
+          🌟 Feedback Rating Distribution
+        </h3>
+        <ul className="space-y-1">
+          {[5, 4, 3, 2, 1].map((stars) => (
+            <li key={stars} className="flex justify-between items-center">
+              <span>{"⭐".repeat(stars)}</span>
+              <span>{ratingDistribution[stars] || 0} ratings</span>
+            </li>
+          ))}
+        </ul>
       </div>
 
       <h3 className="text-lg font-medium mb-2">Your Rides</h3>
       <ul className="space-y-3">
         {rides.map((ride, i) => (
           <li key={i} className="border p-4 rounded-md shadow-sm">
-            <p className="font-semibold">{ride.ride_title || "Untitled Ride"}</p>
+            <p className="font-semibold">
+              {ride.ride_title || "Untitled Ride"}
+            </p>
             {ride.ride_source_location_name && ride.ride_destination_name && (
               <p>
                 From{" "}
-                <span className="text-blue-600">{ride.ride_source_location_name}</span> to{" "}
-                <span className="text-blue-600">{ride.ride_destination_name}</span>
+                <span className="text-blue-600">
+                  {ride.ride_source_location_name}
+                </span>{" "}
+                to{" "}
+                <span className="text-blue-600">
+                  {ride.ride_destination_name}
+                </span>
               </p>
             )}
             <p>Earnings: ₱{(ride.ride_earnings || 0).toFixed(2)}</p>
