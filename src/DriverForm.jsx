@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { db, storage } from "./firebase";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import {
   getAuth,
@@ -9,21 +9,25 @@ import {
 } from "firebase/auth";
 
 const DriverForm = () => {
-  const [name, setName] = useState("");
+  // Name fields now separated
+  const [firstName, setFirstName] = useState("");
+  const [middleName, setMiddleName] = useState("");
+  const [lastName, setLastName] = useState("");
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [mobileNumber, setMobileNumber] = useState("");
   const [plate_number, setPlate_number] = useState("");
   const [vehicleModel, setVehicleModel] = useState("");
   const [plateImage, setPlateImage] = useState(null);
   const [vehicleImage, setVehicleImage] = useState(null);
+  const [profileImage, setProfileImage] = useState(null);
   const [platePreview, setPlatePreview] = useState(null);
   const [vehiclePreview, setVehiclePreview] = useState(null);
+  const [profilePreview, setProfilePreview] = useState(null);
   const [gender, setGender] = useState("");
   const [dob, setDob] = useState("");
-  const [profileImage, setProfileImage] = useState(null);
-  const [profilePreview, setProfilePreview] = useState(null);
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
   const handleImageChange = (e, type) => {
@@ -46,6 +50,28 @@ const DriverForm = () => {
     e.preventDefault();
     const auth = getAuth();
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const mobileRegex = /^\d{11}$/;
+    const passwordRegex =
+      /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+[\]{};':"\\|,.<>/?]).{8,}$/;
+
+    if (!emailRegex.test(email)) {
+      alert("Please enter a valid email address.");
+      return;
+    }
+
+    if (!mobileRegex.test(mobileNumber)) {
+      alert("Mobile number must be exactly 11 digits.");
+      return;
+    }
+
+    if (!passwordRegex.test(password)) {
+      alert(
+        "Password must be at least 8 characters long and include uppercase letters, numbers, and special characters."
+      );
+      return;
+    }
+
     if (password !== confirmPassword) {
       alert("Passwords do not match.");
       return;
@@ -62,7 +88,6 @@ const DriverForm = () => {
 
       await sendEmailVerification(user);
 
-      // Upload images to Firebase Storage
       const plateRef = ref(storage, `plateImages/${userId}_${plateImage.name}`);
       const vehicleRef = ref(
         storage,
@@ -81,13 +106,12 @@ const DriverForm = () => {
       const vehicleImageURL = await getDownloadURL(vehicleRef);
       const profileImageURL = await getDownloadURL(profileRef);
 
-      // FORMAT timestamp into Firestore-compatible field
       const now = new Date();
 
       // CONTACT INFORMATION
       await setDoc(doc(db, "contact_information", userId), {
         uuid: userId,
-        contact_name: name,
+        contact_name: `${firstName} ${middleName} ${lastName}`.trim(),
         email_address: email,
         mobile_number: mobileNumber,
         plate_number: plate_number,
@@ -105,13 +129,10 @@ const DriverForm = () => {
         status: "idle",
         created_by: "tararide_automated_service",
         created_on: now,
-        ride_id: "", // You can populate this later if needed
+        ride_id: "",
       });
 
       // PERSONAL INFORMATION
-      const [firstName = "", middleName = "", ...rest] = name.trim().split(" ");
-      const lastName = rest.join(" ") || "";
-
       await setDoc(doc(db, "personal_information", userId), {
         user_id: userId,
         first_name: firstName,
@@ -136,20 +157,58 @@ const DriverForm = () => {
         Become a Driver
       </h2>
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* First Name */}
         <div>
           <label
-            htmlFor="name"
+            htmlFor="firstName"
             className="block text-sm font-medium text-gray-600"
           >
-            Full Name
+            First Name
           </label>
           <input
-            id="name"
+            id="firstName"
             type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Enter your full name"
-            className="mt-2 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            placeholder="Enter your first name"
+            className="mt-2 block w-full px-4 py-2 border border-gray-300 rounded-md"
+            required
+          />
+        </div>
+
+        {/* Middle Name */}
+        <div>
+          <label
+            htmlFor="middleName"
+            className="block text-sm font-medium text-gray-600"
+          >
+            Middle Name
+          </label>
+          <input
+            id="middleName"
+            type="text"
+            value={middleName}
+            onChange={(e) => setMiddleName(e.target.value)}
+            placeholder="Enter your middle name"
+            className="mt-2 block w-full px-4 py-2 border border-gray-300 rounded-md"
+          />
+        </div>
+
+        {/* Last Name */}
+        <div>
+          <label
+            htmlFor="lastName"
+            className="block text-sm font-medium text-gray-600"
+          >
+            Last Name
+          </label>
+          <input
+            id="lastName"
+            type="text"
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+            placeholder="Enter your last name"
+            className="mt-2 block w-full px-4 py-2 border border-gray-300 rounded-md"
             required
           />
         </div>
@@ -225,11 +284,17 @@ const DriverForm = () => {
           </label>
           <input
             id="mobileNumber"
-            type="text"
+            type="tel"
+            inputMode="numeric"
             value={mobileNumber}
-            onChange={(e) => setMobileNumber(e.target.value)}
+            onChange={(e) => {
+              const cleaned = e.target.value.replace(/\D/g, ""); // remove non-digits
+              if (cleaned.length <= 11) {
+                setMobileNumber(cleaned);
+              }
+            }}
             placeholder="Enter your mobile number"
-            className="mt-2 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="mt-2 block w-full px-4 py-2 border border-gray-300 rounded-md"
             required
           />
         </div>
