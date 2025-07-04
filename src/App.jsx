@@ -15,7 +15,9 @@ import Success from "./Success";
 import Login from "./Login";
 import DriverDashboard from "./DriverDashboard";
 import PrivateRoute from "./PrivateRoute";
-import Account from "./Account"; // ✅ Make sure it's imported
+import Account from "./Account";
+import AboutUs from "./AboutUs";        // ✅ Make sure these are correctly imported
+import Contact from "./Contact";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "./firebase";
 import "./index.css";
@@ -52,6 +54,7 @@ const App = () => {
         <div className="overflow-x-hidden antialiased text-neutral-800">
           <Navbar />
           <Routes>
+            {/* Homepage */}
             <Route
               path="/"
               element={
@@ -67,9 +70,20 @@ const App = () => {
                 )
               }
             />
+
+            {/* Public Routes */}
+            {!user && (
+              <>
+                <Route path="/about-us" element={<AboutUs />} />
+                <Route path="/contact" element={<Contact />} />
+              </>
+            )}
+
             <Route path="/become-a-driver" element={<DriverForm />} />
             <Route path="/success" element={<Success />} />
             <Route path="/login" element={<Login />} />
+
+            {/* Protected Routes */}
             <Route path="/driver-dashboard" element={
               <PrivateRoute allowedRoles={["driver"]}>
                 <DriverDashboard />

@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "/tararide/static/css/main.16bafc1d.css",
-    "main.js": "/tararide/static/js/main.6cbd663f.js",
+    "main.css": "/tararide/static/css/main.8ea75fc5.css",
+    "main.js": "/tararide/static/js/main.921fda5e.js",
     "static/media/cargif.gif": "/tararide/static/media/cargif.e716a91069b75ab6f0d4.gif",
     "static/media/carpool.png": "/tararide/static/media/carpool.ddc40dc08d1ec2605c28.png",
     "index.html": "/tararide/index.html",
-    "main.16bafc1d.css.map": "/tararide/static/css/main.16bafc1d.css.map",
-    "main.6cbd663f.js.map": "/tararide/static/js/main.6cbd663f.js.map"
+    "main.8ea75fc5.css.map": "/tararide/static/css/main.8ea75fc5.css.map",
+    "main.921fda5e.js.map": "/tararide/static/js/main.921fda5e.js.map"
   },
   "entrypoints": [
-    "static/css/main.16bafc1d.css",
-    "static/js/main.6cbd663f.js"
+    "static/css/main.8ea75fc5.css",
+    "static/js/main.921fda5e.js"
   ]
 }
